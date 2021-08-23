@@ -65,7 +65,7 @@ ATTRIBS Cell Life::cell_status(int w_pos, int h_pos) const {
     for (int i = 0; i < 8; ++i) { count += neighbours[i] & 0x1 == 0x1 ? 1 : 0; }
 
     const bool alive = _prev_device_generation[current_idx] & 0x1 == 0x1 ?
-        count == 2 || count == 3 : count == 3;
+                       count == 2 || count == 3 : count == 3;
     Cell cell = _prev_device_generation[current_idx];
     cell = cell << 1;
     cell = cell | (alive ? 0b1 : 0b0);
