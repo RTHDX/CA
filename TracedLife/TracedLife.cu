@@ -2,7 +2,7 @@
 #include <gtc/type_ptr.hpp>
 #include <Utils.hpp>
 
-#include "Game.cuh"
+#include "TracedLife.cuh"
 
 
 namespace game {
@@ -102,7 +102,7 @@ __global__ static void __render__(game::Life* ctx, game::Color* frame) {
     assert(current_i < ctx->len());
 
     game::Color color =
-        covert_to_color(ctx->eval_generation(current_w, current_h));
+        covert_to_color(ctx->eval_cell(current_w, current_h));
 
     frame[current_i].r = color.r;
     frame[current_i].g = color.g;

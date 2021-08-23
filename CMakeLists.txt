@@ -39,6 +39,23 @@ add_subdirectory(glfw)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/glm/glm")
 add_subdirectory(glm)
 
+option(CA_ENABLE_TESTS OFF)
+if (${CA_ENABLE_TESTS})
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/googletest/googletest/include")
+    add_subdirectory(googletest)
+    enable_testing()
+endif()
+
+function (create_test_executable)
+    cmake_parse_arguments(THIS "" "TARGET" "HEADERS;SOURCES;LIBS" ${ARGV})
+    create_executable(
+        TARGET  ${THIS_TARGET}
+        SOURCES ${THIS_SOURCES}
+        HEADERS ${THIS_HEADERS}
+        LIBS GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
+    )
+endfunction (create_test_executable)
+
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/Utils")
 add_subdirectory(Utils)
 

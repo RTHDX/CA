@@ -5,11 +5,12 @@
 #include <device_launch_parameters.h>
 #include <glm.hpp>
 
-namespace game {
+#include <Utils.hpp>
 
+
+namespace game {
 using Color = glm::vec3;
 using Cell = int;
-
 
 class Life {
 public:

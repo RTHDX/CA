@@ -12,9 +12,16 @@ GLFWwindow* load_main_window(char* title, int width, int height);
 bool load_opengl();
 
 void handle_error(cudaError_t err, const char* file, int line);
-#define HANDLE_ERROR(err) (utils::handle_error(err, __FILE__, __LINE__ ))
 
+#ifndef HANDLE_ERROR
+#define HANDLE_ERROR(err) (utils::handle_error(err, __FILE__, __LINE__ ))
+#endif // !HANDLE_ERROR
+
+
+#ifndef ATTRIBS
 #define ATTRIBS __host__ __device__
+#endif // !ATTRIBS
+
 
 template <typename T> inline T* allocate_managed(T* dest, const T& source) {
     HANDLE_ERROR(cudaMallocManaged(&dest, sizeof (T)));

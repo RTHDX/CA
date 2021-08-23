@@ -1,7 +1,7 @@
 #include <GLFW/glfw3.h>
 #include <Utils.hpp>
 
-#include "Game.cuh"
+#include "TracedLife.cuh"
 
 
 int main() {
