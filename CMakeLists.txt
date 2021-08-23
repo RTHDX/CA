@@ -39,16 +39,11 @@ add_subdirectory(glfw)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/glm/glm")
 add_subdirectory(glm)
 
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/Utils")
+add_subdirectory(Utils)
 
-create_library(
-    TARGET Utils
-    SOURCES Utils.cu
-    HEADERS Utils.cuh
-)
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/Life")
+add_subdirectory(Life)
 
-create_executable(
-    TARGET ${PROJECT_NAME}
-    SOURCES Main.cu
-    HEADERS
-    LIBS Utils
-)
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/TracedLife")
+add_subdirectory(TracedLife)

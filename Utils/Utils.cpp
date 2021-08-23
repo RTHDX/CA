@@ -8,7 +8,8 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-#include "Utils.cuh"
+#include "Utils.hpp"
+
 
 namespace utils {
 
