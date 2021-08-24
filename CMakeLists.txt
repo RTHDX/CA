@@ -52,7 +52,8 @@ function (create_test_executable)
         TARGET  ${THIS_TARGET}
         SOURCES ${THIS_SOURCES}
         HEADERS ${THIS_HEADERS}
-        LIBS GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
+        LIBS ${THIS_LIBS} GTest::gtest GTest::gtest_main GTest::gmock
+                          GTest::gmock_main
     )
 endfunction (create_test_executable)
 

@@ -12,13 +12,13 @@ Life::Life(int width, int height)
     : _width(width)
     , _height(height)
     , _len(width* height)
-    , _prev_device_generation(allocate_dev(_prev_device_generation, _len))
-    , _next_device_generation(allocate_dev(_next_device_generation, _len))
+    , _prev(allocate_dev(_prev, _len))
+    , _next(allocate_dev(_next, _len))
 {}
 
 Life::~Life() {
-    cudaFree(_prev_device_generation);
-    cudaFree(_next_device_generation);
+    cudaFree(_prev);
+    cudaFree(_next);
 }
 
 ATTRIBS void Life::initialize() {
@@ -30,7 +30,7 @@ ATTRIBS void Life::initialize() {
         size_t index = 0 + rand() % SIZE;
         initial[i] = SPACE[index];
     }
-    HANDLE_ERROR(cudaMemcpy(_prev_device_generation, initial,
+    HANDLE_ERROR(cudaMemcpy(_prev, initial,
                             _len * sizeof(Cell), cudaMemcpyHostToDevice));
 
     delete[] initial;
@@ -52,21 +52,21 @@ ATTRIBS Cell Life::cell_status(int w_pos, int h_pos) const {
     assert(current_idx < len());
 
     Cell neighbours[8];
-    neighbours[0] = _prev_device_generation[eval_index(w_pos - 1, h_pos - 1)];
-    neighbours[1] = _prev_device_generation[eval_index(w_pos, h_pos - 1)];
-    neighbours[2] = _prev_device_generation[eval_index(w_pos + 1, h_pos - 1)];
-    neighbours[3] = _prev_device_generation[eval_index(w_pos - 1, h_pos)];
-    neighbours[4] = _prev_device_generation[eval_index(w_pos + 1, h_pos)];
-    neighbours[5] = _prev_device_generation[eval_index(w_pos - 1, h_pos + 1)];
-    neighbours[6] = _prev_device_generation[eval_index(w_pos, h_pos + 1)];
-    neighbours[7] = _prev_device_generation[eval_index(w_pos + 1, h_pos + 1)];
+    neighbours[0] = _prev[eval_index(w_pos - 1, h_pos - 1)];
+    neighbours[1] = _prev[eval_index(w_pos, h_pos - 1)];
+    neighbours[2] = _prev[eval_index(w_pos + 1, h_pos - 1)];
+    neighbours[3] = _prev[eval_index(w_pos - 1, h_pos)];
+    neighbours[4] = _prev[eval_index(w_pos + 1, h_pos)];
+    neighbours[5] = _prev[eval_index(w_pos - 1, h_pos + 1)];
+    neighbours[6] = _prev[eval_index(w_pos, h_pos + 1)];
+    neighbours[7] = _prev[eval_index(w_pos + 1, h_pos + 1)];
 
     int count = 0;
     for (int i = 0; i < 8; ++i) { count += neighbours[i] & 0x1 == 0x1 ? 1 : 0; }
 
-    const bool alive = _prev_device_generation[current_idx] & 0x1 == 0x1 ?
+    const bool alive = _prev[current_idx] & 0x1 == 0x1 ?
                        count == 2 || count == 3 : count == 3;
-    Cell cell = _prev_device_generation[current_idx];
+    Cell cell = _prev[current_idx];
     cell = cell << 1;
     cell = cell | (alive ? 0b1 : 0b0);
     return cell;
@@ -77,12 +77,19 @@ ATTRIBS Cell Life::eval_cell(int w_pos, int h_pos) {
     assert(current_idx < len());
 
     const Cell status = cell_status(w_pos, h_pos);
-    _next_device_generation[current_idx] = status;
+    _next[current_idx] = status;
     return status;
 }
 
-ATTRIBS Cell* Life::prev() { return _prev_device_generation; }
-ATTRIBS Cell* Life::next() { return _next_device_generation; }
+ATTRIBS Cell* Life::prev() { return _prev; }
+ATTRIBS Cell* Life::next() { return _next; }
+
+ATTRIBS void Life::swap() {
+    cudaDeviceSynchronize();
+    HANDLE_ERROR(cudaMemcpy(_prev, _next, _len * sizeof (Cell),
+                            cudaMemcpyDeviceToDevice));
+    cudaDeviceSynchronize();
+}
 
 ATTRIBS int Life::len() const { return _len; }
 ATTRIBS int Life::width() const { return _width; }
@@ -133,12 +140,12 @@ Game::~Game() {
     cudaFree(_device_ctx);
 }
 
+void Game::eval_generation() {
+    __render__ <<<_block_width, _thread_height>>>(_device_ctx, _dev_frame);
+    _device_ctx->swap();
+}
+
 void Game::render() {
-    cudaDeviceSynchronize();
-    __render__<<<_block_width, _thread_height>>>(_device_ctx, _dev_frame);
-    cudaDeviceSynchronize();
-    __swap__<<<_block_width, _thread_height>>>(_device_ctx);
-    cudaDeviceSynchronize();
     HANDLE_ERROR(cudaMemcpy(_host_frame, _dev_frame,
                             _device_ctx->len() * sizeof(Color),
                             cudaMemcpyDeviceToHost));

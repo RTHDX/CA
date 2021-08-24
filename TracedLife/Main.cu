@@ -15,6 +15,7 @@ int main() {
 
     while (!glfwWindowShouldClose(window)) {
         glfwSwapBuffers(window);
+        game.eval_generation();
         game.render();
         glfwPollEvents();
     }

@@ -24,6 +24,7 @@ public:
 
     ATTRIBS Cell* prev();
     ATTRIBS Cell* next();
+    ATTRIBS void swap();
 
     ATTRIBS int len() const;
     ATTRIBS int width() const;
@@ -31,8 +32,8 @@ public:
 
 private:
     int _width, _height, _len;
-    Cell* _prev_device_generation;
-    Cell* _next_device_generation;
+    Cell* _prev;
+    Cell* _next;
 };
 
 
@@ -41,6 +42,7 @@ public:
     Game(const Life& life);
     ~Game();
 
+    void eval_generation();
     void render();
 
 private:

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstring>
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
@@ -31,6 +33,11 @@ template <typename T> inline T* allocate_managed(T* dest, const T& source) {
 
 template <typename T> inline T* allocate_dev(T* dest, size_t len) {
     HANDLE_ERROR(cudaMalloc(&dest, len * sizeof (T)));
+    return dest;
+}
+
+template <typename T> inline T* allocate_managed(T* dest, size_t len) {
+    HANDLE_ERROR(cudaMallocManaged(&dest, len * sizeof (T)));
     return dest;
 }
 

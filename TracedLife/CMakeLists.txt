@@ -17,8 +17,8 @@ create_executable(
 if (${CA_ENABLE_TESTS})
     create_test_executable(
         TARGET "${PROJECT_NAME}_Test"
-        SOURCES UnitTest.cu
-        HEADERS
-        LIBS Utils impl
+        SOURCES UnitTest.cu TracedLife.cu
+        HEADERS TracedLife.cuh
+        LIBS Utils
     )
 endif()
