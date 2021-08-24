@@ -21,6 +21,11 @@ Life::~Life() {
     cudaFree(_next);
 }
 
+ATTRIBS void Life::initialize(Cell* initial) {
+    HANDLE_ERROR(cudaMemcpy(_prev, initial, _len * sizeof(Cell),
+                 cudaMemcpyHostToDevice));
+}
+
 ATTRIBS void Life::initialize() {
     static constexpr Cell SPACE[] = {0b1, 0b0, 0b0};
     static constexpr size_t SIZE = sizeof(SPACE) / sizeof(Cell);
@@ -30,8 +35,7 @@ ATTRIBS void Life::initialize() {
         size_t index = 0 + rand() % SIZE;
         initial[i] = SPACE[index];
     }
-    HANDLE_ERROR(cudaMemcpy(_prev, initial,
-                            _len * sizeof(Cell), cudaMemcpyHostToDevice));
+    initialize(initial);
 
     delete[] initial;
 }
@@ -68,7 +72,7 @@ ATTRIBS Cell Life::cell_status(int w_pos, int h_pos) const {
                        count == 2 || count == 3 : count == 3;
     Cell cell = _prev[current_idx];
     cell = cell << 1;
-    cell = cell | (alive ? 0b1 : 0b0);
+    cell = cell | (alive ? 0x1 : 0x0);
     return cell;
 }
 
@@ -97,8 +101,16 @@ ATTRIBS int Life::height() const { return _height; }
 
 
 ATTRIBS Color covert_to_color(Cell cell) {
-    if (cell & 0x1 == 0x1) { return Color(1.0, 0.0, 0.0); }
-    if (cell & 0x2 == 0x2) { return Color(0.0, 0.0, 1.0); }
+    if ((cell & 0x1) == 0x1)   { return Color(1.0, 1.0, 1.0); }
+    if ((cell & 0x2) == 0x2)   { return Color(0.9, 0.9, 0.9); }
+    if ((cell & 0x4) == 0x4)   { return Color(0.8, 0.8, 0.8); }
+    if ((cell & 0x8) == 0x8)   { return Color(0.7, 0.7, 0.7); }
+    if ((cell & 0x10) == 0x10) { return Color(0.6, 0.6, 0.6); }
+    if ((cell & 0x20) == 0x20) { return Color(0.5, 0.5, 0.5); }
+    if ((cell & 0x30) == 0x30) { return Color(0.4, 0.4, 0.4); }
+    if ((cell & 0x40) == 0x40) { return Color(0.3, 0.3, 0.3); }
+    if ((cell & 0x50) == 0x50) { return Color(0.2, 0.2, 0.2); }
+    if ((cell & 0x60) == 0x60) { return Color(0.1, 0.1, 0.1); }
     return Color(0.0, 0.0, 0.0);
 }
 
@@ -108,21 +120,11 @@ __global__ static void __render__(game::Life* ctx, game::Color* frame) {
     const int current_i = ctx->eval_index(current_w, current_h);
     assert(current_i < ctx->len());
 
-    game::Color color =
-        covert_to_color(ctx->eval_cell(current_w, current_h));
+    game::Color color = covert_to_color(ctx->eval_cell(current_w, current_h));
 
     frame[current_i].r = color.r;
     frame[current_i].g = color.g;
     frame[current_i].b = color.b;
-}
-
-__global__ static void __swap__(game::Life* ctx) {
-    const int current_w = blockIdx.x;
-    const int current_h = threadIdx.x;
-    const int current_i = ctx->eval_index(current_w, current_h);
-    assert(current_i < ctx->len());
-
-    ctx->prev()[current_i] = ctx->next()[current_i];
 }
 
 

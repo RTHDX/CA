@@ -17,6 +17,7 @@ public:
     Life(int width, int height);
     ~Life();
 
+    ATTRIBS void initialize(Cell* initial);
     ATTRIBS void initialize();
     ATTRIBS int eval_index(int w_pos, int h_pos) const;
     ATTRIBS Cell cell_status(int w_pos, int h_pos) const;
@@ -36,6 +37,7 @@ private:
     Cell* _next;
 };
 
+ATTRIBS Color covert_to_color(Cell cell);
 
 class Game {
 public:
@@ -44,6 +46,7 @@ public:
 
     void eval_generation();
     void render();
+    Life* ctx() { return _device_ctx; }
 
 private:
     Color* _host_frame = nullptr;
