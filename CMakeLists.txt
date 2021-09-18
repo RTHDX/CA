@@ -7,11 +7,9 @@ function (create_executable)
     message("Preparing executable: ${THIS_TARGET}")
     add_executable(${THIS_TARGET} ${THIS_HEADERS} ${THIS_SOURCES})
     target_include_directories(${THIS_TARGET} PRIVATE
-        ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
-    )
+                               ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
     target_link_libraries(${THIS_TARGET} PRIVATE
-        ${OPENGL_LIBRARIES} glfw glad ${THIS_LIBS}
-    )
+                          ${OPENGL_LIBRARIES} glfw glad ${THIS_LIBS})
     set_property(TARGET ${THIS_TARGET} PROPERTY CXX_STANDARD 17)
     set_property(TARGET ${THIS_TARGET} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 endfunction (create_executable)
@@ -21,11 +19,9 @@ function (create_library)
     message("Preparing library: ${THIS_TARGET}")
     add_library(${THIS_TARGET} STATIC ${THIS_HEADERS} ${THIS_SOURCES})
     target_include_directories(${THIS_TARGET} PRIVATE
-        ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
-    )
+                               ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
     target_link_libraries(${THIS_TARGET} PRIVATE
-        ${OPENGL_LIBRARIES} glfw glad ${THIS_LIBS}
-    )
+                          ${OPENGL_LIBRARIES} glfw glad ${THIS_LIBS})
     set_property(TARGET ${THIS_TARGET} PROPERTY CXX_STANDARD 17)
     set_property(TARGET ${THIS_TARGET} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 endfunction (create_library)
@@ -41,21 +37,21 @@ add_subdirectory(glm)
 
 option(CA_ENABLE_TESTS OFF)
 if (${CA_ENABLE_TESTS})
-    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/googletest/googletest/include")
+    include_directories(
+        "${CMAKE_CURRENT_SOURCE_DIR}/googletest/googletest/include")
     add_subdirectory(googletest)
     enable_testing()
-endif()
 
-function (create_test_executable)
-    cmake_parse_arguments(THIS "" "TARGET" "HEADERS;SOURCES;LIBS" ${ARGV})
-    create_executable(
-        TARGET  ${THIS_TARGET}
-        SOURCES ${THIS_SOURCES}
-        HEADERS ${THIS_HEADERS}
-        LIBS ${THIS_LIBS} GTest::gtest GTest::gtest_main GTest::gmock
-                          GTest::gmock_main
-    )
-endfunction (create_test_executable)
+    function (create_test_executable)
+        cmake_parse_arguments(THIS "" "TARGET" "HEADERS;SOURCES;LIBS" ${ARGV})
+        create_executable(
+            TARGET  ${THIS_TARGET}
+            SOURCES ${THIS_SOURCES}
+            HEADERS ${THIS_HEADERS}
+            LIBS ${THIS_LIBS} GTest::gtest GTest::gtest_main GTest::gmock
+                              GTest::gmock_main)
+    endfunction(create_test_executable)
+endif()
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/Utils")
 add_subdirectory(Utils)
@@ -65,3 +61,6 @@ add_subdirectory(Life)
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/TracedLife")
 add_subdirectory(TracedLife)
+
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/Automanton")
+add_subdirectory(Automaton)

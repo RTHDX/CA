@@ -12,8 +12,8 @@ Life::Life(int width, int height)
     : _width(width)
     , _height(height)
     , _len(width* height)
-    , _prev(allocate_dev(_prev, _len))
-    , _next(allocate_dev(_next, _len))
+    , _prev(allocate_dev<Cell>(_len))
+    , _next(allocate_dev<Cell>(_len))
 {}
 
 Life::~Life() {
@@ -130,8 +130,8 @@ __global__ static void __render__(game::Life* ctx, game::Color* frame) {
 
 Game::Game(const Life& life)
     : _host_frame(new Color[life.len()])
-    , _dev_frame(utils::allocate_dev(_dev_frame, life.len()))
-    , _device_ctx(utils::allocate_managed(_device_ctx, life))
+    , _dev_frame(utils::allocate_dev<Color>(life.len()))
+    , _device_ctx(utils::copy_allocate_managed(_device_ctx, life))
     , _block_width(life.width())
     , _thread_height(life.height())
 {}
