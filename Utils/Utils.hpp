@@ -2,6 +2,8 @@
 
 #include <cstring>
 #include <utility>
+#include <cassert>
+#include <memory>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -52,23 +54,33 @@ template <typename T> inline T* allocate_managed(T* dest, size_t len) {
     return dest;
 }
 
-template <typename T> inline void host_to_device(T* dest, T* src, int len) {
+template <typename T>
+inline void host_to_device(T* dest, const T* src, int len) {
     HANDLE_ERROR(cudaMemcpy(dest, src, sizeof (T) * len,
                             cudaMemcpyHostToDevice));
 }
 
-template <typename T> inline void device_to_device(T* dest, T* src, int len) {
+template <typename T>
+inline void device_to_device(T* dest, const T* src, int len) {
     HANDLE_ERROR(cudaMemcpy(dest, src, sizeof (T) * len,
                             cudaMemcpyDeviceToDevice));
 }
 
-template <typename T> inline void device_to_host(T* dest, T* src, int len) {
+template <typename T>
+inline void device_to_host(T* dest, const T* src, int len) {
     HANDLE_ERROR(cudaMemcpy(dest, src, sizeof (T) * len,
                             cudaMemcpyDeviceToHost));
 }
 
-template <typename T> inline void host_to_host(T* dest, T* src, int len) {
-    std::memcpy(dest, src, len);
+template <typename T>
+inline void host_to_host(T* dest, const T* src, size_t len) {
+    assert(dest != nullptr);
+    assert(src != nullptr);
+    //std::memcpy(dest, src, len);
+
+    for (int i = 0; i < len; ++i) {
+        dest[i] = src[i];
+    }
 }
 
 template<typename T> T* allocate(int len, bool is_host) {
@@ -78,7 +90,8 @@ template<typename T> T* allocate(int len, bool is_host) {
     return out;
 }
 
-template<typename T> inline void copy(T* dest, T* src, int len, bool host) {
+template<typename T>
+inline void copy(T* dest, const T* src, int len, bool host) {
     if (host) { utils::host_to_host(dest, src, len); }
     else { utils::device_to_device(dest, src, len); }
 }

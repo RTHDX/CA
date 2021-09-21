@@ -15,10 +15,11 @@ static const std::vector<ca::Cell>& native_locality() {
 
 
 TEST(Rule, native) {
-    ca::Rule rule = ca::initialize_native("0U100000", ca::moore());
+    ca::Rule rule = ca::initialize_native("00U100000", ca::moore());
     ca::Cell current = 0x0;
     current = rule.apply(native_locality().data(), current);
     EXPECT_EQ(current, 0x1);
+    EXPECT_EQ(rule.env(), ca::moore());
 }
 
 __global__ void __apply__(ca::Rule* ctx, ca::Cell* locality, ca::Cell current) {
@@ -28,7 +29,7 @@ __global__ void __apply__(ca::Rule* ctx, ca::Cell* locality, ca::Cell current) {
 
 
 TEST(Rule, global) {
-    auto rule = ca::initialize_global("0U100000", ca::moore());
+    auto rule = ca::initialize_global("00U100000", ca::moore());
     ca::Cell current = 0x0;
     ca::Cell result;
     ca::Rule* dev_rule = nullptr;

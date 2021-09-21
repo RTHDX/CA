@@ -11,7 +11,7 @@
 namespace ca {
 using Cell = int64_t;
 
-enum class RuleType : int8_t {
+enum class RuleType {
     KILL = 0,
     REVIVE = 1,
     LEAVE = 127
@@ -33,6 +33,8 @@ public:
     ATTRIBS const RuleType* rules() const { return _rules; }
     ATTRIBS Environment env() const { return _env; }
     ATTRIBS bool host() const { return _host; }
+
+    ATTRIBS void dump() const;
 
 private:
     Environment _env;

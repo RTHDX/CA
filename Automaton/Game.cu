@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include <Utils.hpp>
 
 #include "Game.cuh"
@@ -7,40 +9,44 @@ namespace ca {
 
 __host__ Game::Game(const Rule& rule, int width, int height)
     : _rule(rule)
-    , _prev_generation(utils::allocate_dev<Cell>(width * height))
-    , _next_generation(utils::allocate_dev<Cell>(width * height))
+    , _prev_generation(utils::allocate<Cell>(width * height, rule.host()))
+    , _next_generation(utils::allocate<Cell>(width * height, rule.host()))
     , _width(width)
     , _height(height)
 {}
 
 __host__ Game::Game(const Game& old) {
     int len = old._width * old._height;
+    bool is_host = old._rule.host();
+
     _rule = old._rule;
     _width = old._width;
     _height = old._height;
 
-    _prev_generation = utils::allocate_dev<Cell>(len);
-    utils::copy(_prev_generation, old._prev_generation, len, false);
-    _next_generation = utils::allocate_dev<Cell>(_width * _height);
-    utils::copy(_prev_generation, old._prev_generation, len, false);
+    _prev_generation = utils::allocate<Cell>(len, is_host);
+    utils::copy(_prev_generation, old._prev_generation, len, is_host);
+    _next_generation = utils::allocate<Cell>(len, is_host);
+    utils::copy(_prev_generation, old._prev_generation, len, is_host);
 }
 
 __host__ Game& Game::operator = (const Game& old) {
     if (this == &old) return *this;
 
     int len = old._width * old._height;
+    bool is_host = old._rule.host();
+
     _rule = old._rule;
     _width = old._width;
     _height = old._height;
 
-    Cell* temp_prev = utils::allocate<Cell>(len, false);
-    utils::copy(temp_prev, old._prev_generation, len, false);
-    utils::free(_prev_generation, false);
+    Cell* temp_prev = utils::allocate<Cell>(len, is_host);
+    utils::copy(temp_prev, old._prev_generation, len, is_host);
+    utils::free(_prev_generation, is_host);
     _prev_generation = temp_prev;
 
-    Cell* temp_next = utils::allocate<Cell>(len, false);
-    utils::copy(temp_next, old._next_generation, len, false);
-    utils::free(_next_generation, false);
+    Cell* temp_next = utils::allocate<Cell>(len, is_host);
+    utils::copy(temp_next, old._next_generation, len, is_host);
+    utils::free(_next_generation, is_host);
     _next_generation = temp_next;
 
     return *this;
@@ -57,8 +63,9 @@ __host__ Game::Game(Game&& old) {
 __host__ Game& Game::operator = (Game&& old) {
     if (this == &old) return *this;
 
-    utils::free(_prev_generation, false);
-    utils::free(_next_generation, false);
+    bool is_host = old._rule.host();
+    utils::free(_prev_generation, is_host);
+    utils::free(_next_generation, is_host);
     _prev_generation = old._prev_generation;
     _next_generation = old._next_generation;
     _rule = old._rule;
@@ -69,16 +76,24 @@ __host__ Game& Game::operator = (Game&& old) {
 }
 
 __host__ Game::~Game() {
-    utils::free(_prev_generation, false);
-    utils::free(_next_generation, false);
+    bool is_host = _rule.host();
+
+    utils::free(_prev_generation, is_host);
+    utils::free(_next_generation, is_host);
 }
 
-ATTRIBS void Game::initialize(Cell* initial) {
-    HANDLE_ERROR(cudaMemcpy(_prev_generation, initial, len() * sizeof(Cell),
-                            cudaMemcpyHostToDevice));
+__host__ void Game::initialize(const Cell* initial) {
+    const bool is_host = _rule.host();
+
+    if (!is_host) { cudaDeviceSynchronize(); }
+
+    if (!is_host) { utils::host_to_device(_prev_generation, initial, len()); }
+    else { utils::host_to_host(_prev_generation, initial, len()); }
+
+    if (!is_host) { cudaDeviceSynchronize(); }
 }
 
-ATTRIBS void Game::initialize() {
+__host__ void Game::initialize() {
     static constexpr Cell SPACE[] = {0x1, 0x0, 0x0};
     static constexpr size_t SIZE = sizeof(SPACE) / sizeof(Cell);
 
@@ -93,11 +108,19 @@ ATTRIBS void Game::initialize() {
 }
 
 ATTRIBS void Game::eval_generation(int w_pos, int h_pos) const {
-    _next_generation[eval_index(w_pos, h_pos)] = eval_cell(w_pos, h_pos);
+    const int index = eval_index(w_pos, h_pos);
+    assert(index < len());
+
+    //printf("Evaluating: %d\n", index);
+    _next_generation[index] = eval_cell(w_pos, h_pos);
 }
 
 ATTRIBS void Game::swap() {
-    utils::device_to_device(_prev_generation, _next_generation, len());
+    const bool is_host = _rule.host();
+
+    if (!is_host) { cudaDeviceSynchronize(); }
+    utils::copy(_prev_generation, _next_generation, len(), is_host);
+    if (!is_host) { cudaDeviceSynchronize(); }
 }
 
 ATTRIBS int Game::eval_index(int w_pos, int h_pos) const {
@@ -109,6 +132,12 @@ ATTRIBS int Game::eval_index(int w_pos, int h_pos) const {
     int index = w_pos + (width() * h_pos);
     assert(index < len());
     return index;
+}
+
+ATTRIBS void dump_locality(Cell* locality, int len) {
+    for (int i = 0; i < len; ++i) {
+        printf("%d, ", locality[i]);
+    }
 }
 
 ATTRIBS Cell Game::eval_cell(int w_pos, int h_pos) const {
@@ -165,6 +194,32 @@ ATTRIBS void Game::fill_locality(Cell* locality, int w_pos, int h_pos) const {
     }
 
 #undef APPLY_MASK
+}
+
+__host__ void Game::load_prev(Cell* buffer) const {
+    if (_rule.host()) {
+        utils::host_to_host(buffer, _prev_generation, len());
+    } else {
+        utils::device_to_host(buffer, _prev_generation, len());
+    }
+}
+
+__host__ void Game::load_next(Cell* buffer) const {
+    if (_rule.host()) {
+        utils::host_to_host(buffer, _next_generation, len());
+    } else {
+        utils::device_to_host(buffer, _next_generation, len());
+    }
+}
+
+ATTRIBS void Game::dump(const Cell* array) const {
+    for (int i = 0; i < width(); ++i) {
+        for (int j = 0; j < height(); ++j) {
+            Cell cell = array[eval_index(i, j)];
+            char symbol = ((cell & 0x1) == 0x1) ? '1' : '0';
+            printf("%c ", symbol);
+        } printf("\n");
+    } printf("\n");
 }
 
 }

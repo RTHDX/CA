@@ -20,6 +20,7 @@ __host__ Rule::Rule(RuleType* rules, Environment env, int len, bool host)
 __host__ Rule::Rule(const Rule& old) {
     _len = old._len;
     _host = old._host;
+    _env = old._env;
     _rules = utils::allocate<RuleType>(_len, _host);
     utils::copy(_rules, old._rules, _len, _host);
 }
@@ -30,6 +31,7 @@ __host__ Rule& Rule::operator = (const Rule& old) {
 
     _len = old._len;
     _host = old._host;
+    _env = old._env;
     RuleType* rules = utils::allocate<RuleType>(_len, _host);
     utils::copy(rules, old._rules, _len, _host);
     utils::free(_rules, _host);
@@ -40,6 +42,7 @@ __host__ Rule& Rule::operator = (const Rule& old) {
 
 __host__ Rule::Rule(Rule&& old) {
     _rules = old._rules;
+    _env = old._env;
     utils::free(old._rules, old._host);
     _len = old._len;
     _host = old._host;
@@ -53,6 +56,7 @@ __host__ Rule& Rule::operator = (Rule&& old) {
     _rules = old._rules;
     _len = old._len;
     _host = old._host;
+    _env = old._env;
     return *this;
 }
 
@@ -63,16 +67,20 @@ __host__ Rule::~Rule() { utils::free(_rules, _host); }
 ATTRIBS Cell Rule::apply(const Cell* locality, Cell current) const {
     assert(locality != nullptr);
 
-    int8_t summ = 0;
+    int summ = 0;
     for (int i = 0; i < len(); ++i) {
         summ += ((locality[i] & 0x1) == 0x1) ? 1 : 0;
-    } assert(summ <= len());
+    }
 
     Cell last_state = current & 0x1;
     current = current << 1;
-    RuleType rule = _rules[summ - 1];
+    RuleType rule = _rules[summ ];
     return rule == RuleType::LEAVE ? (current | last_state) :
                                      (current | (Cell)rule);
+}
+
+ATTRIBS void Rule::dump() const {
+    printf("<Rule. env: %d>\n", _env);
 }
 
 
@@ -99,14 +107,16 @@ RuleType* convert_to_device(RuleType* host_vector, int len) {
 
 Rule initialize_native(const char* raw, Environment env) {
     int len = std::strlen(raw);
-    assert(len == bitcount((int)env));
-    return Rule(convert(raw, len), env, len, true);
+    int count = bitcount((int)env);
+    assert(len == count + 1);
+    return Rule(convert(raw, len), env, count, true);
 }
 
 Rule initialize_global(const char* raw, Environment env) {
     int len = std::strlen(raw);
-    assert(len == bitcount((int)env));
-    return Rule(convert_to_device(convert(raw, len), len), env, len, false);
+    int count = bitcount((int)env);
+    assert(len == count + 1);
+    return Rule(convert_to_device(convert(raw, len), len), env, count, false);
 }
 
 }
