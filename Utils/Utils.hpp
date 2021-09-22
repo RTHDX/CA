@@ -50,24 +50,35 @@ template <typename T> inline T* allocate_dev(size_t len) {
 }
 
 template <typename T> inline T* allocate_managed(T* dest, size_t len) {
+    assert(dest != nulptr);
+
     HANDLE_ERROR(cudaMallocManaged(&dest, len * sizeof (T)));
     return dest;
 }
 
 template <typename T>
 inline void host_to_device(T* dest, const T* src, int len) {
+    assert(dest != nullptr);
+    assert(src != nullptr);
+
     HANDLE_ERROR(cudaMemcpy(dest, src, sizeof (T) * len,
                             cudaMemcpyHostToDevice));
 }
 
 template <typename T>
 inline void device_to_device(T* dest, const T* src, int len) {
+    assert(dest != nullptr);
+    assert(src != nullptr);
+
     HANDLE_ERROR(cudaMemcpy(dest, src, sizeof (T) * len,
                             cudaMemcpyDeviceToDevice));
 }
 
 template <typename T>
 inline void device_to_host(T* dest, const T* src, int len) {
+    assert(dest != nullptr);
+    assert(src != nullptr);
+
     HANDLE_ERROR(cudaMemcpy(dest, src, sizeof (T) * len,
                             cudaMemcpyDeviceToHost));
 }
@@ -92,11 +103,16 @@ template<typename T> T* allocate(int len, bool is_host) {
 
 template<typename T>
 inline void copy(T* dest, const T* src, int len, bool host) {
+    assert(dest != nullptr);
+    assert(src != nullptr);
+
     if (host) { utils::host_to_host(dest, src, len); }
     else { utils::device_to_device(dest, src, len); }
 }
 
 template<typename T> inline void free(T* data, bool host) {
+    if (data == nullptr) return;
+
     if (host) { delete[] data; }
     else { cudaFree(data); }
 }

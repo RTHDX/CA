@@ -38,7 +38,7 @@ public:
 
 private:
     Environment _env;
-    RuleType* _rules;
+    RuleType* _rules = nullptr;
     int _len = 0;
     bool _host = false;
 };

@@ -111,7 +111,6 @@ ATTRIBS void Game::eval_generation(int w_pos, int h_pos) const {
     const int index = eval_index(w_pos, h_pos);
     assert(index < len());
 
-    //printf("Evaluating: %d\n", index);
     _next_generation[index] = eval_cell(w_pos, h_pos);
 }
 
@@ -132,6 +131,11 @@ ATTRIBS int Game::eval_index(int w_pos, int h_pos) const {
     int index = w_pos + (width() * h_pos);
     assert(index < len());
     return index;
+}
+
+ATTRIBS Cell Game::get(const int i) const {
+    assert(i < len());
+    return _next_generation[i];
 }
 
 ATTRIBS void dump_locality(Cell* locality, int len) {
@@ -213,9 +217,19 @@ __host__ void Game::load_next(Cell* buffer) const {
 }
 
 ATTRIBS void Game::dump(const Cell* array) const {
-    for (int i = 0; i < width(); ++i) {
-        for (int j = 0; j < height(); ++j) {
-            Cell cell = array[eval_index(i, j)];
+    printf("Prev generation:\n");
+    for (int i = 0; i < height(); ++i) {
+        for (int j = 0; j < width(); ++j) {
+            Cell cell = _prev_generation[eval_index(i, j)];
+            char symbol = ((cell & 0x1) == 0x1) ? '1' : '0';
+            printf("%c ", symbol);
+        } printf("\n");
+    } printf("\n");
+
+    printf("Next generation:\n");
+    for (int i = 0; i < height(); ++i) {
+        for (int j = 0; j < width(); ++j) {
+            Cell cell = _next_generation[eval_index(i, j)];
             char symbol = ((cell & 0x1) == 0x1) ? '1' : '0';
             printf("%c ", symbol);
         } printf("\n");
