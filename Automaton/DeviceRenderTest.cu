@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "DeviceRender.cuh"
+#include "ConsoleRender.hpp"
 
 static inline const std::vector<ca::Cell>& native_oscilator() {
     static std::vector<ca::Cell> field{
@@ -14,14 +15,21 @@ static inline const std::vector<ca::Cell>& native_oscilator() {
 }
 
 
-void print(const ca::Game* game, const ca::Color* frame) {
-    for (int h_pos = 0; h_pos < game->height(); ++h_pos) {
-        for (int w_pos = 0; w_pos < game->width(); ++w_pos) {
-            ca::Color color = frame[game->eval_index(w_pos, h_pos)];
-            char symbol = color == ca::Color(1.0, 0.0, 0.0) ? 'r' : 'b';
-            printf("%c ", symbol);
-        } printf("\n");
-    } printf("\n");
+testing::AssertionResult test_locality(const ca::DeviceRender& render,
+                                       const std::vector<ca::Color>& colors) {
+    ca::Color nord = render.frame()[render.game()->eval_index(2, 1)]
+        , east = render.frame()[render.game()->eval_index(3, 2)]
+        , south = render.frame()[render.game()->eval_index(2, 3)]
+        , west = render.frame()[render.game()->eval_index(1, 2)]
+        , center = render.frame()[render.game()->eval_index(2, 2)];
+
+    return testing::AssertionResult(
+        nord == colors[0] &&
+        east == colors[1] &&
+        south == colors[2] &&
+        west == colors[3] &&
+        center == colors[4]
+    );
 }
 
 
@@ -30,49 +38,23 @@ TEST(DeviceRender, life_oscilator) {
     ca::Game game(ca::initialize_global("00U100000", ca::moore()),
                   width, height);
     game.initialize(native_oscilator().data());
-    ca::DeviceRender render(game, true);
+    ca::DeviceRender render(game);
     const ca::Color red = ca::Color(1.0, 0.0, 0.0);
     const ca::Color blue = ca::Color(0.0, 0.0, 1.0);
+    ca::ConsoleRender console_render_callback(ca::ColorMap{
+        {ca::Color(1.0, 0.0, 0.0), 'r'},
+        {ca::Color(0.0, 0.0, 1.0), 'b'}
+    });
 
     render.evaluate();
-    render.render();
-    print(render.game(), render.frame());
-    ca::Color nord = render.frame()[render.game()->eval_index(2, 1)]
-        , east = render.frame()[render.game()->eval_index(3, 2)]
-        , south = render.frame()[render.game()->eval_index(2, 3)]
-        , west = render.frame()[render.game()->eval_index(1, 2)]
-        , center = render.frame()[render.game()->eval_index(2, 2)];
-    EXPECT_EQ(nord, blue);
-    EXPECT_EQ(east, red);
-    EXPECT_EQ(south, blue);
-    EXPECT_EQ(west, red);
-    EXPECT_EQ(center, red);
+    render.render(console_render_callback);
+    EXPECT_TRUE(test_locality(render, {blue, red, blue, red, red}));
 
     render.evaluate();
-    render.render();
-    print(render.game(), render.frame());
-    nord = render.frame()[render.game()->eval_index(2, 1)];
-    east = render.frame()[render.game()->eval_index(3, 2)];
-    south = render.frame()[render.game()->eval_index(2, 3)];
-    west = render.frame()[render.game()->eval_index(1, 2)];
-    center = render.frame()[render.game()->eval_index(2, 2)];
-    EXPECT_EQ(nord, red);
-    EXPECT_EQ(east, blue);
-    EXPECT_EQ(south, red);
-    EXPECT_EQ(west, blue);
-    EXPECT_EQ(center, red);
+    render.render(console_render_callback);
+    EXPECT_TRUE(test_locality(render, {red, blue, red, blue, red}));
 
     render.evaluate();
-    render.render();
-    print(render.game(), render.frame());
-    nord = render.frame()[render.game()->eval_index(2, 1)];
-    east = render.frame()[render.game()->eval_index(3, 2)];
-    south = render.frame()[render.game()->eval_index(2, 3)];
-    west = render.frame()[render.game()->eval_index(1, 2)];
-    center = render.frame()[render.game()->eval_index(2, 2)];
-    EXPECT_EQ(nord, blue);
-    EXPECT_EQ(east, red);
-    EXPECT_EQ(south, blue);
-    EXPECT_EQ(west, red);
-    EXPECT_EQ(center, red);
+    render.render(console_render_callback);
+    EXPECT_TRUE(test_locality(render, {blue, red, blue, red, red}));
 }

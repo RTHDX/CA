@@ -40,7 +40,7 @@ void render(const ca::Game& game, const ca::Cell* array, Range range) {
     } printf("\n");
 }
 
-void evaluate(const ca::Game& game, Range range) {
+void evaluate(ca::Game& game, Range range) {
     for (range.w_pos = range.w_begin; range.w_pos < range.w_end; ++(range.w_pos)) {
         for (range.h_pos = range.h_begin; range.h_pos < range.h_end; ++(range.h_pos)) {
             game.eval_generation(range.h_pos, range.w_pos);

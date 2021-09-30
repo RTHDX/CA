@@ -107,11 +107,13 @@ __host__ void Game::initialize() {
     delete[] initial;
 }
 
-ATTRIBS void Game::eval_generation(int w_pos, int h_pos) const {
+ATTRIBS Cell Game::eval_generation(int w_pos, int h_pos) {
     const int index = eval_index(w_pos, h_pos);
     assert(index < len());
 
-    _next_generation[index] = eval_cell(w_pos, h_pos);
+    Cell cell = eval_cell(w_pos, h_pos);
+    _next_generation[index] = cell;
+    return cell;
 }
 
 ATTRIBS void Game::swap() {
@@ -214,26 +216,6 @@ __host__ void Game::load_next(Cell* buffer) const {
     } else {
         utils::device_to_host(buffer, _next_generation, len());
     }
-}
-
-ATTRIBS void Game::dump(const Cell* array) const {
-    printf("Prev generation:\n");
-    for (int i = 0; i < height(); ++i) {
-        for (int j = 0; j < width(); ++j) {
-            Cell cell = _prev_generation[eval_index(i, j)];
-            char symbol = ((cell & 0x1) == 0x1) ? '1' : '0';
-            printf("%c ", symbol);
-        } printf("\n");
-    } printf("\n");
-
-    printf("Next generation:\n");
-    for (int i = 0; i < height(); ++i) {
-        for (int j = 0; j < width(); ++j) {
-            Cell cell = _next_generation[eval_index(i, j)];
-            char symbol = ((cell & 0x1) == 0x1) ? '1' : '0';
-            printf("%c ", symbol);
-        } printf("\n");
-    } printf("\n");
 }
 
 }

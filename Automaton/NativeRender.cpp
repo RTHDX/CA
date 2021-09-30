@@ -8,19 +8,17 @@
 
 namespace ca {
 
-NativeRender::NativeRender(Game&& game, bool silent)
+NativeRender::NativeRender(Game&& game)
     : IRender()
     , _game(std::move(game))
-    , _frame(utils::allocate<Color>(game.len(), true))
-    , _is_silent(silent) {
+    , _frame(utils::allocate<Color>(game.len(), true)) {
     _game.initialize();
 }
 
-NativeRender::NativeRender(const Game& game, bool silent)
+NativeRender::NativeRender(const Game& game)
     : IRender()
     , _game(game)
     , _frame(utils::allocate<Color>(game.len(), true))
-    , _is_silent(silent)
 {}
 
 NativeRender::~NativeRender() {
@@ -35,13 +33,10 @@ void NativeRender::evaluate() {
     }
 }
 
-void NativeRender::render() {
+void NativeRender::render(RenderCallback callback) {
     fill_frame();
 
-    if (!_is_silent) {
-        glDrawPixels(_game.width(), _game.height(), GL_RGB, GL_FLOAT,
-                     glm::value_ptr(*_frame));
-    }
+    if (callback) { callback(_game.width(), _game.height(), _frame); }
 
     _game.swap();
 }

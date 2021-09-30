@@ -17,7 +17,7 @@ public:
     __host__ void initialize(const Cell* initial);
     __host__ void initialize();
 
-    ATTRIBS void eval_generation(int w_pos, int h_pos) const;
+    ATTRIBS Cell eval_generation(int w_pos, int h_pos);
     ATTRIBS void swap();
 
     ATTRIBS int len() const { return _width * _height; }
@@ -27,11 +27,12 @@ public:
     ATTRIBS Cell get(const int i) const;
 
     ATTRIBS void dump(const Cell* array) const;
+    ATTRIBS Cell eval_cell(int w_pos, int h_pos) const;
+
     __host__ void load_prev(Cell* buffer) const;
     __host__ void load_next(Cell* buffer) const;
 
 private:
-    ATTRIBS Cell eval_cell(int w_pos, int h_pos) const;
     ATTRIBS void fill_locality(Cell* locality, int w, int h) const;
 
 private:
