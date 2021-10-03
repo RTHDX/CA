@@ -2,23 +2,37 @@
 #include <gtc/type_ptr.hpp>
 #include <GLFW/glfw3.h>
 
+#include <npp.h>
+
 #include "../Automaton/Game.cuh"
 #include "Utils.hpp"
 
-int width = 1280;
-int height = 860;
+int width = 860;
+int height = 640;
 
 ca::Game create_life() {
-    return ca::Game (ca::initialize_global("00U100000", ca::moore()),
-                     width, height);
+    ca::Game game(ca::initialize_global("00U100000", ca::moore()),
+                  width, height);
+    game.initialize();
+
+    return game;
 }
 
 
-__device__ ca::Color convert(ca::Cell cell) {
-    return ((cell & 0x1) == 0x1) ? ca::Color(1.0, 1.0, 1.0) :
-                                   ca::Color(0.0, 0.0, 0.0);
-}
+ATTRIBS ca::Color convert(ca::Cell cell) {
+#define APPLY_MASK(MASK) ((cell & MASK) == MASK)
 
+    ca::Cell mask = 0b1;
+    ca::Color out(1.0, 1.0, 1.0);
+    for (size_t i = 0; i < 64; ++i) {
+        if (APPLY_MASK(mask)) { return out; }
+        out = out - ca::Color(1.0 / 64, 1.0 / 64, 1.0 / 64);
+        mask = mask << 1;
+    }
+    return out;
+
+#undef APPLY_MASK
+}
 
 __global__ void __evaluate__(ca::Game* game, ca::Color* frame) {
     assert(game != nullptr);
@@ -28,16 +42,14 @@ __global__ void __evaluate__(ca::Game* game, ca::Color* frame) {
     int current_h = threadIdx.x;
     int index = game->eval_index(current_w, current_h);
 
-    ca::Cell current = game->eval_generation(current_w, current_h);
-    frame[index] = convert(current);
+    frame[index] = convert(game->eval_generation(current_w, current_h));
 }
 
-
 int main() {
-    GLFWwindow* main_window = utils::load_main_window("Life example",
+    GLFWwindow* main_window = utils::load_main_window("Traced Life Example",
                                                       width, height);
     if (main_window == nullptr) { exit(EXIT_FAILURE); }
-    if (!utils::load_opengl())  { exit(EXIT_FAILURE); }
+    if (!utils::load_opengl()) { exit(EXIT_FAILURE); }
 
     ca::Game life = create_life();
     ca::Game* dev_life = utils::copy_allocate_managed(life);
@@ -58,10 +70,6 @@ int main() {
 
         glfwPollEvents();
     }
-
-    utils::free(dev_life, false);
-    utils::free(dev_frame, false);
-    utils::free(host_frame, true);
 
     glfwTerminate();
     exit(EXIT_SUCCESS);
