@@ -215,19 +215,13 @@ ATTRIBS void Game::fill_locality(Cell* locality, int w_pos, int h_pos) const {
 }
 
 __host__ void Game::load_prev(Cell* buffer) const {
-    if (_rule.host()) {
-        utils::host_to_host(buffer, _prev_generation, len());
-    } else {
-        utils::device_to_host(buffer, _prev_generation, len());
-    }
+    if (_rule.host()) { utils::host_to_host(buffer, _prev_generation, len()); }
+    else { utils::device_to_host(buffer, _prev_generation, len()); }
 }
 
 __host__ void Game::load_next(Cell* buffer) const {
-    if (_rule.host()) {
-        utils::host_to_host(buffer, _next_generation, len());
-    } else {
-        utils::device_to_host(buffer, _next_generation, len());
-    }
+    if (_rule.host()) { utils::host_to_host(buffer, _next_generation, len()); }
+    else { utils::device_to_host(buffer, _next_generation, len()); }
 }
 
 }

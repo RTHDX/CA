@@ -59,11 +59,6 @@ add_subdirectory(Utils)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/Automanton")
 add_subdirectory(Automaton)
 
-#include_directories("${CMAKE_CURRENT_SOURCE_DIR}/Life")
-#add_subdirectory(Life)
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/Life")
+add_subdirectory(Life)
 
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/Life_1")
-add_subdirectory(Life_1)
-
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/TracedLife")
-add_subdirectory(TracedLife)

@@ -1,9 +1,12 @@
 #pragma once
 
+#include "glm.hpp"
+
 #include "Rule.cuh"
 
 
 namespace ca {
+using Color = glm::vec3;
 
 class Game {
 public:
