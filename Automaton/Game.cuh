@@ -39,6 +39,7 @@ private:
     Rule _rule;
     Cell* _prev_generation = nullptr;
     Cell* _next_generation = nullptr;
+    Cell* _localities = nullptr;
     int _width, _height;
 };
 

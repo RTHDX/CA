@@ -11,6 +11,8 @@ __host__ Game::Game(const Rule& rule, int width, int height)
     : _rule(rule)
     , _prev_generation(utils::allocate<Cell>(width * height, rule.host()))
     , _next_generation(utils::allocate<Cell>(width * height, rule.host()))
+    , _localities(utils::allocate<Cell>(width * height * rule.len(),
+                                        rule.host()))
     , _width(width)
     , _height(height)
 {}
@@ -27,6 +29,8 @@ __host__ Game::Game(const Game& old) {
     utils::copy(_prev_generation, old._prev_generation, len, is_host);
     _next_generation = utils::allocate<Cell>(len, is_host);
     utils::copy(_prev_generation, old._prev_generation, len, is_host);
+    _localities = utils::allocate<Cell>(len * old._rule.len(), is_host);
+    utils::copy(_localities, old._localities, len * old._rule.len(), is_host);
 }
 
 __host__ Game& Game::operator = (const Game& old) {
@@ -49,6 +53,11 @@ __host__ Game& Game::operator = (const Game& old) {
     utils::free(_next_generation, is_host);
     _next_generation = temp_next;
 
+    Cell* temp_locality = utils::allocate<Cell>(len * _rule.len(), is_host);
+    utils::copy(temp_locality, old._localities, len * _rule.len(), is_host);
+    utils::free(_localities, is_host);
+    _localities = temp_locality;
+
     return *this;
 }
 
@@ -58,6 +67,7 @@ __host__ Game::Game(Game&& old) {
     _height = old._height;
     _prev_generation = old._prev_generation;
     _next_generation = old._next_generation;
+    _localities = old._localities;
 }
 
 __host__ Game& Game::operator = (Game&& old) {
@@ -66,8 +76,10 @@ __host__ Game& Game::operator = (Game&& old) {
     bool is_host = old._rule.host();
     utils::free(_prev_generation, is_host);
     utils::free(_next_generation, is_host);
+    utils::free(_localities, is_host);
     _prev_generation = old._prev_generation;
     _next_generation = old._next_generation;
+    _localities = old._localities;
     _rule = old._rule;
     _width = old._width;
     _height = old._height;
@@ -80,6 +92,7 @@ __host__ Game::~Game() {
 
     utils::free(_prev_generation, is_host);
     utils::free(_next_generation, is_host);
+    utils::free(_localities, is_host);
 }
 
 __host__ void Game::initialize(const Cell* initial) {
@@ -147,21 +160,20 @@ ATTRIBS void dump_locality(Cell* locality, int len) {
 }
 
 ATTRIBS Cell Game::eval_cell(int w_pos, int h_pos) const {
-    Cell* locality = new Cell[_rule.len()];
-    fill_locality(locality, w_pos, h_pos);
+    fill_locality(_localities, w_pos, h_pos);
 
     const int current_index = eval_index(w_pos, h_pos);
     assert(current_index < len());
-    Cell result = _rule.apply(locality, _prev_generation[current_index]);
+    Cell result = _rule.apply(_localities + (current_index * _rule.len()),
+                              _prev_generation[current_index]);
 
-    delete [] locality;
     return result;
 }
 
 ATTRIBS void Game::fill_locality(Cell* locality, int w_pos, int h_pos) const {
 #define APPLY_MASK(MASK) ((_rule.env() & (MASK)) == (MASK))
 
-    int index = 0;
+    int index = eval_index(w_pos, h_pos) * _rule.len();
     if (APPLY_MASK(Environment::NORD_WEST)) {
         locality[index] = _prev_generation[eval_index(w_pos - 1, h_pos - 1)];
         index++;

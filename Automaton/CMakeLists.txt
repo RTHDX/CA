@@ -37,12 +37,12 @@ if (${CA_ENABLE_TESTS})
         LIBS ${PROJECT_NAME}
     )
 
-    #create_test_executable(
-    #    TARGET NativeRenderTest
-    #    SOURCES NativeRenderTest.cpp
-    #    HEADERS
-    #    LIBS ${PROJECT_NAME}
-    #)
+    create_test_executable(
+        TARGET NativeRenderTest
+        SOURCES NativeRenderTest.cpp
+        HEADERS
+        LIBS ${PROJECT_NAME}
+    )
 
     create_test_executable(
         TARGET DeviceRenderTest
