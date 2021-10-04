@@ -132,9 +132,7 @@ ATTRIBS Cell Game::eval_generation(int w_pos, int h_pos) {
 ATTRIBS void Game::swap() {
     const bool is_host = _rule.host();
 
-    if (!is_host) { cudaDeviceSynchronize(); }
     utils::copy(_prev_generation, _next_generation, len(), is_host);
-    if (!is_host) { cudaDeviceSynchronize(); }
 }
 
 ATTRIBS int Game::eval_index(int w_pos, int h_pos) const {

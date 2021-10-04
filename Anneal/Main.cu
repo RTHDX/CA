@@ -2,35 +2,23 @@
 #include <gtc/type_ptr.hpp>
 #include <GLFW/glfw3.h>
 
-#include <npp.h>
-
 #include "../Automaton/Game.cuh"
 #include "Utils.hpp"
 
 int width = 1280;
-int height = 952;
+int height = 860;
 
-ca::Game create_life() {
+
+ca::Game create_anneal() {
     return ca::Game(
-        ca::initialize_global("0.1.100..", ca::moore()),
+        ca::initialize_global("0001010111", ca::full()),
         width, height
     );
 }
 
-
-ATTRIBS ca::Color convert(ca::Cell cell) {
-#define APPLY_MASK(MASK) ((cell & MASK) == MASK)
-
-    ca::Cell mask = 0b1;
-    ca::Color out(1.0, 1.0, 1.0);
-    for (size_t i = 0; i < 64; ++i) {
-        if (APPLY_MASK(mask)) { return out; }
-        out = out - ca::Color(1.0 / 64, 1.0 / 64, 1.0 / 64);
-        mask = mask << 1;
-    }
-    return out;
-
-#undef APPLY_MASK
+__device__ ca::Color convert(ca::Cell cell) {
+    return ((cell & 0x1) == 0x1) ? ca::Color(0.0, 1.0, 0.8) :
+                                   ca::Color(0.0, 0.0, 0.0);
 }
 
 __global__ void __evaluate__(ca::Game* game, ca::Color* frame) {
@@ -41,16 +29,18 @@ __global__ void __evaluate__(ca::Game* game, ca::Color* frame) {
     int current_h = threadIdx.x;
     int index = game->eval_index(current_w, current_h);
 
-    frame[index] = convert(game->eval_generation(current_w, current_h));
+    ca::Cell current = game->eval_generation(current_w, current_h);
+    frame[index] = convert(current);
 }
 
+
 int main() {
-    GLFWwindow* main_window = utils::load_main_window("Traced Life Example",
-                                                      width, height);
+    GLFWwindow* main_window = utils::load_main_window("Majority example",
+        width, height);
     if (main_window == nullptr) { exit(EXIT_FAILURE); }
     if (!utils::load_opengl()) { exit(EXIT_FAILURE); }
 
-    ca::Game life = create_life();
+    ca::Game life = create_anneal();
     ca::Game* dev_life = utils::copy_allocate_managed(life);
     ca::Color* dev_frame = utils::allocate<ca::Color>(width * height, false);
     ca::Color* host_frame = utils::allocate<ca::Color>(width * height, true);
@@ -60,16 +50,34 @@ int main() {
     while (!glfwWindowShouldClose(main_window)) {
         glfwSwapBuffers(main_window);
 
+        cudaEvent_t start, stop;
+        HANDLE_ERROR(cudaEventCreate(&start));
+        HANDLE_ERROR(cudaEventCreate(&stop));
+        HANDLE_ERROR(cudaEventRecord(start, 0));
+        HANDLE_ERROR(cudaEventRecord(stop, 0));
+
         __evaluate__<<<width_block, height_block>>>(dev_life, dev_frame);
-        cudaDeviceSynchronize();
+        //cudaDeviceSynchronize();
+        HANDLE_ERROR(cudaEventRecord(stop, 0));
+        float elapsed_time;
+        HANDLE_ERROR(cudaEventSynchronize(stop));
+        HANDLE_ERROR(cudaEventElapsedTime(&elapsed_time, start, stop));
+        printf("Elapsed time: %f\n", elapsed_time);
+
         utils::device_to_host(host_frame, dev_frame, width * height);
         glDrawPixels(width, height, GL_RGB, GL_FLOAT,
                      glm::value_ptr(*host_frame));
         dev_life->swap();
 
+        HANDLE_ERROR(cudaEventDestroy(start));
+        HANDLE_ERROR(cudaEventDestroy(stop));
+
         glfwPollEvents();
     }
 
-    glfwTerminate();
+    utils::free(dev_life, false);
+    utils::free(dev_frame, false);
+    utils::free(host_frame, true);
+
     exit(EXIT_SUCCESS);
 }
