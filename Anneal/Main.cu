@@ -11,7 +11,7 @@ int height = 860;
 
 ca::Game create_anneal() {
     return ca::Game(
-        ca::initialize_global("0001010111", ca::full()),
+        ca::initialize_global(".100011101", ca::full()),
         width, height
     );
 }
@@ -49,28 +49,14 @@ int main() {
 
     while (!glfwWindowShouldClose(main_window)) {
         glfwSwapBuffers(main_window);
-
-        cudaEvent_t start, stop;
-        HANDLE_ERROR(cudaEventCreate(&start));
-        HANDLE_ERROR(cudaEventCreate(&stop));
-        HANDLE_ERROR(cudaEventRecord(start, 0));
-        HANDLE_ERROR(cudaEventRecord(stop, 0));
-
-        __evaluate__<<<width_block, height_block>>>(dev_life, dev_frame);
-        //cudaDeviceSynchronize();
-        HANDLE_ERROR(cudaEventRecord(stop, 0));
-        float elapsed_time;
-        HANDLE_ERROR(cudaEventSynchronize(stop));
-        HANDLE_ERROR(cudaEventElapsedTime(&elapsed_time, start, stop));
-        printf("Elapsed time: %f\n", elapsed_time);
+        CUDA_LAUNCH(
+            __evaluate__, width_block, height_block, dev_life, dev_frame
+        );
 
         utils::device_to_host(host_frame, dev_frame, width * height);
         glDrawPixels(width, height, GL_RGB, GL_FLOAT,
                      glm::value_ptr(*host_frame));
         dev_life->swap();
-
-        HANDLE_ERROR(cudaEventDestroy(start));
-        HANDLE_ERROR(cudaEventDestroy(stop));
 
         glfwPollEvents();
     }

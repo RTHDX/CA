@@ -12,7 +12,7 @@ int height = 952;
 
 ca::Game create_life() {
     return ca::Game(
-        ca::initialize_global("0.1.100..", ca::moore()),
+        ca::initialize_global("00U100000", ca::moore()),
         width, height
     );
 }
@@ -60,8 +60,8 @@ int main() {
     while (!glfwWindowShouldClose(main_window)) {
         glfwSwapBuffers(main_window);
 
-        __evaluate__<<<width_block, height_block>>>(dev_life, dev_frame);
-        cudaDeviceSynchronize();
+        CUDA_LAUNCH(__evaluate__, width_block, height_block, dev_life,
+                    dev_frame)
         utils::device_to_host(host_frame, dev_frame, width * height);
         glDrawPixels(width, height, GL_RGB, GL_FLOAT,
                      glm::value_ptr(*host_frame));

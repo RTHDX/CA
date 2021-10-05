@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include <cstring>
 #include <utility>
 #include <cassert>
@@ -26,6 +27,24 @@ void handle_error(cudaError_t err, const char* file, int line);
 #ifndef ATTRIBS
 #define ATTRIBS __host__ __device__
 #endif // !ATTRIBS
+
+#ifndef CUDA_LAUNCH
+#define CUDA_LAUNCH(FUNCTION, WIDTH, HEIGHT, LIFE, FRAME) {\
+    cudaEvent_t start, stop;\
+    HANDLE_ERROR(cudaEventCreate(&start));\
+    HANDLE_ERROR(cudaEventCreate(&stop));\
+    HANDLE_ERROR(cudaEventRecord(start, 0));\
+    HANDLE_ERROR(cudaEventRecord(stop, 0));\
+    FUNCTION<<<WIDTH, HEIGHT>>>(LIFE, FRAME);\
+    HANDLE_ERROR(cudaEventRecord(stop, 0));\
+    float elapsed_time;\
+    HANDLE_ERROR(cudaEventSynchronize(stop));\
+    HANDLE_ERROR(cudaEventElapsedTime(&elapsed_time, start, stop));\
+    printf("Elapsed time: %f\n", elapsed_time);\
+    HANDLE_ERROR(cudaEventDestroy(start));\
+    HANDLE_ERROR(cudaEventDestroy(stop));\
+}
+#endif
 
 
 template <typename T>
